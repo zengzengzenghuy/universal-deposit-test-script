@@ -4,7 +4,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "node src/index.js",
-    "demo": "open index.html"
+    "demo": "open index.html",
+    "start": "http-server -p 8080"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,8 @@
     "axios": "^1.12.2",
     "dotenv": "^17.2.3",
     "viem": "^2.38.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }
