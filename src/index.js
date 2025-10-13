@@ -14,12 +14,12 @@ import "dotenv/config";
 // Test sending USDC from Edu Chain to Gnosis Chain
 async function main() {
   // Step 1: register address and get UD Address with the following parameter
-  const ownerAddress = privateKeyToAddress(process.env.PRIVATE_KEY); // Owner address has the permission to withdraw unsupported token that has been transferred to the UD address
-  const recipientAddress = privateKeyToAddress(process.env.PRIVATE_KEY); // Recipient address on destination chain
-  const sourceChainId = 41923; // Edu Chain
-  const dstChainId = 100; // Gnosis Chain
-  const privateKey = process.env.PRIVATE_KEY; // Make sure this account has enough USDC
-  const usdcValue = 2_000_000; // 2 USDC
+  const ownerAddress = privateKeyToAddress(process.env.PRIVATE_KEY); // Input field # 1: Owner address has the permission to withdraw unsupported token that has been transferred to the UD address
+  const recipientAddress = privateKeyToAddress(process.env.PRIVATE_KEY); // Input field # 2: Recipient address on destination chain
+  const sourceChainId = 41923; // # Dropdown field # 1: Options (41923, 100, 42161)
+  const dstChainId = 100; // # Dropdown field # 2: Options (41923, 100, 42161)
+  const privateKey = process.env.PRIVATE_KEY; // Make sure this account has enough USDC. Connect through wallet
+  const usdcValue = 2_000_000; // # Input field 3
 
   const { universalAddress } = await registerAddress(
     ownerAddress,
@@ -33,6 +33,7 @@ async function main() {
   const sourceChainWalletClient = getWalletClient(privateKey, sourceChainId);
 
   // Step 2: Query nonce of UD before bridging. Nonce starts from 0, increment 1
+  // If it returns 0, meaning that the UD account is not created yet and nonce is 0
   const UDAddressNonce = await getNonceByUD(
     sourceChainWalletClient,
     universalAddress

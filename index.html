@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Universal Deposit Demo</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      .wallet-section {
+        background: #e3f2fd;
+        border: 2px solid #2196f3;
+      }
+      .inputs-section {
+        background: #f3e5f5;
+        border: 2px solid #9c27b0;
+      }
+      .logs-section {
+        background: #e8f5e8;
+        border: 2px solid #4caf50;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-sizing: border-box;
+      }
+      button {
+        background: #2196f3;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+      }
+      button:hover {
+        background: #1976d2;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .step {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        background: #fafafa;
+      }
+      .step.active {
+        border-color: #2196f3;
+        background: #e3f2fd;
+      }
+      .step.completed {
+        border-color: #4caf50;
+        background: #e8f5e8;
+      }
+      .log-entry {
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+        font-family: monospace;
+        font-size: 14px;
+      }
+      .log-entry:last-child {
+        border-bottom: none;
+      }
+      .chain-info {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+      .error {
+        color: #f44336;
+        background: #ffebee;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      .success {
+        color: #4caf50;
+        background: #e8f5e8;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🌉 Universal Deposit Demo</h1>
+
+    <!-- Wallet Connection Section -->
+    <div class="container wallet-section">
+      <h2>💼 Wallet Connection (Required First)</h2>
+      <button id="connectWallet">Connect MetaMask Wallet</button>
+      <div id="walletInfo" style="margin-top: 10px"></div>
+
+      <!-- API Key Section - only visible after wallet connection -->
+      <div
+        id="apiKeySection"
+        style="
+          display: none;
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+        ">
+        <label for="apiKey">API Key:</label>
+        <input
+          type="password"
+          id="apiKey"
+          placeholder="Enter your API key..."
+          style="margin-bottom: 5px" />
+        <small style="display: block; color: #666"
+          >This API key will be used for bridge API calls</small
+        >
+      </div>
+    </div>
+
+    <!-- Input Section -->
+    <div class="container inputs-section">
+      <h2>⚙️ Configuration</h2>
+
+      <div class="grid">
+        <div>
+          <label>Owner Address:</label>
+          <input type="text" id="ownerAddress" placeholder="0x..." disabled />
+          <small>Address with permission to withdraw unsupported tokens</small>
+        </div>
+
+        <div>
+          <label>Recipient Address:</label>
+          <input
+            type="text"
+            id="recipientAddress"
+            placeholder="0x..."
+            disabled />
+          <small>Address to receive tokens on destination chain</small>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label>Source Chain:</label>
+          <select id="sourceChain" disabled>
+            <option value="41923">Edu Chain (41923)</option>
+            <option value="100">Gnosis Chain (100)</option>
+            <option value="42161">Arbitrum (42161)</option>
+          </select>
+          <div class="chain-info" id="sourceChainInfo">
+            USDC: 0x12a272A581feE5577A5dFa371afEB4b2F3a8C2F8
+          </div>
+        </div>
+
+        <div>
+          <label>Destination Chain:</label>
+          <select id="dstChain" disabled>
+            <option value="100" selected>Gnosis Chain (100)</option>
+            <option value="41923">Edu Chain (41923)</option>
+            <option value="42161">Arbitrum (42161)</option>
+          </select>
+          <div class="chain-info" id="dstChainInfo">
+            USDC: 0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label>USDC Amount:</label>
+        <input
+          type="number"
+          id="usdcValue"
+          value="2000000"
+          placeholder="2000000"
+          disabled />
+        <small>2,000,000 = 2 USDC (6 decimal places)</small>
+      </div>
+
+      <button id="startBridge" disabled>Start Bridge Process</button>
+    </div>
+
+    <!-- Steps Section -->
+    <div class="container">
+      <h2>📋 Bridge Steps</h2>
+
+      <div class="step" id="step1">
+        <h3>Step 1: Register Address & Get Universal Address</h3>
+        <p>
+          Register address for monitoring and get the Universal Deposit address
+        </p>
+        <div id="step1Result"></div>
+      </div>
+
+      <div class="step" id="step2">
+        <h3>Step 2: Query Nonce</h3>
+        <p>
+          Get the current nonce of the Universal Deposit address (starts from 0)
+        </p>
+        <div id="step2Result"></div>
+      </div>
+
+      <div class="step" id="step3">
+        <h3>Step 3: Bridge USDC</h3>
+        <p>Transfer USDC to the Universal Deposit address</p>
+        <div id="step3Result"></div>
+      </div>
+
+      <div class="step" id="step4">
+        <h3>Step 4: Poll for Completion</h3>
+        <p>Monitor order status until COMPLETED (up to 5 minutes)</p>
+        <div id="step4Result"></div>
+      </div>
+    </div>
+
+    <!-- Logs Section -->
+    <div class="container logs-section">
+      <h2>📝 Real-time Logs</h2>
+      <div id="logs"></div>
+      <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <script>
+      let walletConnected = false;
+      let currentAccount = null;
+      let currentStep = 0;
+      let apiKey = null;
+
+      // Chain configurations
+      const chainConfigs = {
+        41923: {
+          name: "Edu Chain",
+          usdc: "0x12a272A581feE5577A5dFa371afEB4b2F3a8C2F8",
+        },
+        100: {
+          name: "Gnosis Chain",
+          usdc: "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0",
+        },
+        42161: {
+          name: "Arbitrum",
+          usdc: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+        },
+      };
+
+      // Update chain info when selection changes
+      document
+        .getElementById("sourceChain")
+        .addEventListener("change", function () {
+          updateChainInfo();
+        });
+
+      document
+        .getElementById("dstChain")
+        .addEventListener("change", function () {
+          updateChainInfo();
+        });
+
+      function updateChainInfo() {
+        const sourceChain = document.getElementById("sourceChain").value;
+        const dstChain = document.getElementById("dstChain").value;
+
+        document.getElementById(
+          "sourceChainInfo"
+        ).textContent = `USDC: ${chainConfigs[sourceChain].usdc}`;
+        document.getElementById(
+          "dstChainInfo"
+        ).textContent = `USDC: ${chainConfigs[dstChain].usdc}`;
+      }
+
+      // Override console.log to capture logs
+      const originalLog = console.log;
+      console.log = function (...args) {
+        originalLog.apply(console, args);
+        addLog(args.join(" "));
+      };
+
+      function addLog(message) {
+        const logsDiv = document.getElementById("logs");
+        const logEntry = document.createElement("div");
+        logEntry.className = "log-entry";
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logsDiv.appendChild(logEntry);
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+      }
+
+      function clearLogs() {
+        document.getElementById("logs").innerHTML = "";
+      }
+
+      function setStepActive(stepNum) {
+        // Remove active class from all steps
+        document.querySelectorAll(".step").forEach((step) => {
+          step.classList.remove("active");
+        });
+        // Add active class to current step
+        if (stepNum > 0) {
+          document.getElementById(`step${stepNum}`).classList.add("active");
+        }
+      }
+
+      function setStepCompleted(stepNum) {
+        const step = document.getElementById(`step${stepNum}`);
+        step.classList.remove("active");
+        step.classList.add("completed");
+      }
+
+      function showError(message) {
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "error";
+        errorDiv.textContent = message;
+        document.body.insertBefore(
+          errorDiv,
+          document.querySelector(".container")
+        );
+        setTimeout(() => errorDiv.remove(), 5000);
+      }
+
+      function showSuccess(message) {
+        const successDiv = document.createElement("div");
+        successDiv.className = "success";
+        successDiv.textContent = message;
+        document.body.insertBefore(
+          successDiv,
+          document.querySelector(".container")
+        );
+        setTimeout(() => successDiv.remove(), 5000);
+      }
+
+      // Wallet connection
+      document
+        .getElementById("connectWallet")
+        .addEventListener("click", async () => {
+          if (typeof window.ethereum !== "undefined") {
+            try {
+              const accounts = await window.ethereum.request({
+                method: "eth_requestAccounts",
+              });
+              currentAccount = accounts[0];
+              walletConnected = true;
+
+              document.getElementById("walletInfo").innerHTML = `
+                        <div class="success">✅ Connected: ${currentAccount}</div>
+                    `;
+
+              // Show API key section
+              document.getElementById("apiKeySection").style.display = "block";
+
+              // Enable inputs
+              document.getElementById("ownerAddress").value = currentAccount;
+              document.getElementById("recipientAddress").value =
+                currentAccount;
+
+              const inputs = [
+                "ownerAddress",
+                "recipientAddress",
+                "sourceChain",
+                "dstChain",
+                "usdcValue",
+              ];
+              inputs.forEach((id) => {
+                document.getElementById(id).disabled = false;
+              });
+              document.getElementById("startBridge").disabled = false;
+
+              console.log("Wallet connected:", currentAccount);
+              showSuccess("Wallet connected successfully!");
+            } catch (error) {
+              console.error("Failed to connect wallet:", error);
+              showError("Failed to connect wallet: " + error.message);
+            }
+          } else {
+            showError(
+              "MetaMask is not installed. Please install MetaMask to continue."
+            );
+          }
+        });
+
+      // Start bridge process
+      document
+        .getElementById("startBridge")
+        .addEventListener("click", async () => {
+          if (!walletConnected) {
+            showError("Please connect your wallet first");
+            return;
+          }
+
+          // Get and validate API key
+          apiKey = document.getElementById("apiKey").value.trim();
+          if (!apiKey) {
+            showError("Please enter your API key");
+            return;
+          }
+
+          try {
+            await executeBridgeProcess();
+          } catch (error) {
+            console.error("Bridge process failed:", error);
+            showError("Bridge process failed: " + error.message);
+          }
+        });
+
+      async function executeBridgeProcess() {
+        const ownerAddress = document.getElementById("ownerAddress").value;
+        const recipientAddress =
+          document.getElementById("recipientAddress").value;
+        const sourceChainId = parseInt(
+          document.getElementById("sourceChain").value
+        );
+        const dstChainId = parseInt(document.getElementById("dstChain").value);
+        const usdcValue = parseInt(document.getElementById("usdcValue").value);
+
+        console.log("Starting bridge process...");
+        console.log(
+          `Using API Key: ${"*".repeat(Math.min(apiKey.length, 8))}...`
+        );
+        console.log(
+          `From: ${chainConfigs[sourceChainId].name} (${sourceChainId})`
+        );
+        console.log(`To: ${chainConfigs[dstChainId].name} (${dstChainId})`);
+        console.log(
+          `Amount: ${usdcValue} micro USDC (${usdcValue / 1000000} USDC)`
+        );
+
+        // Step 1: Register Address
+        setStepActive(1);
+        console.log(
+          "Step 1: Registering address and getting Universal Address..."
+        );
+
+        // Simulate API call
+        await simulateDelay(2000);
+        const universalAddress =
+          "0x" +
+          Array.from({ length: 40 }, () =>
+            Math.floor(Math.random() * 16).toString(16)
+          ).join("");
+        console.log("UD address", universalAddress);
+
+        document.getElementById("step1Result").innerHTML = `
+                <div class="success">✅ Universal Address: ${universalAddress}</div>
+            `;
+        setStepCompleted(1);
+
+        // Step 2: Query Nonce
+        setStepActive(2);
+        console.log("Step 2: Querying UD address nonce...");
+
+        await simulateDelay(1500);
+        const UDAddressNonce = Math.floor(Math.random() * 3);
+        console.log(`Nonce: ${UDAddressNonce}`);
+
+        document.getElementById("step2Result").innerHTML = `
+                <div class="success">✅ Nonce: ${UDAddressNonce}</div>
+            `;
+        setStepCompleted(2);
+
+        // Step 3: Bridge USDC
+        setStepActive(3);
+        console.log("Step 3: Bridging USDC...");
+
+        await simulateDelay(3000);
+        const bridgeUSDCTxHash =
+          "0x" +
+          Array.from({ length: 64 }, () =>
+            Math.floor(Math.random() * 16).toString(16)
+          ).join("");
+        console.log("Bridge USDC Tx hash", bridgeUSDCTxHash);
+
+        document.getElementById("step3Result").innerHTML = `
+                <div class="success">✅ Transaction Hash: ${bridgeUSDCTxHash}</div>
+            `;
+        setStepCompleted(3);
+
+        // Step 4: Poll for completion
+        setStepActive(4);
+        console.log("Step 4: Polling for order status...");
+
+        const maxAttempts = 30;
+        const delayMs = 2000;
+        let attempt = 0;
+        let orderCompleted = false;
+
+        while (attempt < maxAttempts && !orderCompleted) {
+          attempt++;
+
+          await simulateDelay(delayMs);
+
+          // Simulate random completion (higher chance as attempts increase)
+          const completionChance = Math.min(0.1 + attempt * 0.05, 0.9);
+          const status =
+            Math.random() < completionChance ? "COMPLETED" : "PENDING";
+
+          console.log(`Attempt ${attempt}: Order status - ${status}`);
+
+          if (status === "COMPLETED") {
+            orderCompleted = true;
+            const bridgeTransactionUrl = `https://layerzeroscan.com/tx/${bridgeUSDCTxHash}`;
+            console.log("Order completed successfully!");
+            console.log("Transaction URL:", bridgeTransactionUrl);
+
+            document.getElementById("step4Result").innerHTML = `
+                        <div class="success">
+                            ✅ Order completed successfully!<br>
+                            <a href="${bridgeTransactionUrl}" target="_blank">View Transaction</a>
+                        </div>
+                    `;
+            setStepCompleted(4);
+            showSuccess("🎉 Bridge completed successfully!");
+            break;
+          } else {
+            document.getElementById("step4Result").innerHTML = `
+                        <div>⏳ Attempt ${attempt}/${maxAttempts}: ${status}</div>
+                    `;
+
+            if (attempt < maxAttempts) {
+              console.log(
+                `Waiting ${delayMs / 1000} seconds before next check...`
+              );
+            }
+          }
+        }
+
+        if (!orderCompleted) {
+          throw new Error("Order did not complete within the expected time");
+        }
+
+        console.log("Bridge process completed successfully!");
+      }
+
+      function simulateDelay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      // Initialize
+      updateChainInfo();
+    </script>
+  </body>
+</html>
