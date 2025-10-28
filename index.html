@@ -165,24 +165,20 @@
         <div>
           <label>Source Chain:</label>
           <select id="sourceChain" disabled>
-            <option value="41923">Edu Chain (41923)</option>
-            <option value="100">Gnosis Chain (100)</option>
-            <option value="42161">Arbitrum (42161)</option>
+            <!-- Options will be populated from config.json -->
           </select>
           <div class="chain-info" id="sourceChainInfo">
-            USDC: 0x12a272A581feE5577A5dFa371afEB4b2F3a8C2F8
+            <!-- Chain info will be populated dynamically -->
           </div>
         </div>
 
         <div>
           <label>Destination Chain:</label>
           <select id="dstChain" disabled>
-            <option value="100" selected>Gnosis Chain (100)</option>
-            <option value="41923">Edu Chain (41923)</option>
-            <option value="42161">Arbitrum (42161)</option>
+            <!-- Options will be populated from config.json -->
           </select>
           <div class="chain-info" id="dstChainInfo">
-            USDC: 0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0
+            <!-- Chain info will be populated dynamically -->
           </div>
         </div>
       </div>
@@ -247,21 +243,50 @@
       let currentStep = 0;
       let apiKey = null;
 
-      // Chain configurations
-      const chainConfigs = {
-        41923: {
-          name: "Edu Chain",
-          usdc: "0x12a272A581feE5577A5dFa371afEB4b2F3a8C2F8",
-        },
-        100: {
-          name: "Gnosis Chain",
-          usdc: "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0",
-        },
-        42161: {
-          name: "Arbitrum",
-          usdc: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
-        },
-      };
+      // Load chain configurations from config.json
+      let chainConfigs = {};
+      let configData = null;
+      
+      // Load config.json
+      async function loadConfig() {
+        try {
+          const response = await fetch('./config.json');
+          configData = await response.json();
+          
+          // Build chain configs from config.json
+          chainConfigs = {};
+          configData.chains.forEach(chain => {
+            chainConfigs[chain.chainId] = {
+              name: chain.name,
+              usdc: chain.contracts.usdc,
+              stargateUsdc: chain.contracts.stargateUsdc
+            };
+          });
+          
+          // Populate chain selects
+          populateChainSelects();
+        } catch (error) {
+          console.error('Failed to load config.json:', error);
+          // Fallback to hardcoded configs
+          chainConfigs = {
+            41923: {
+              name: "Edu Chain",
+              usdc: "0x12a272A581feE5577A5dFa371afEB4b2F3a8C2F8",
+              stargateUsdc: "0x28BEc7E30E6faee657a03e19Bf1128AaD7632A00"
+            },
+            100: {
+              name: "Gnosis Chain",
+              usdc: "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0",
+              stargateUsdc: "0xB1EeAD6959cb5bB9B20417d6689922523B2B86C3"
+            },
+            42161: {
+              name: "Arbitrum",
+              usdc: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+              stargateUsdc: "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3"
+            }
+          };
+        }
+      }
 
       // Update chain info when selection changes
       document
@@ -276,16 +301,45 @@
           updateChainInfo();
         });
 
+      function populateChainSelects() {
+        const sourceSelect = document.getElementById('sourceChain');
+        const dstSelect = document.getElementById('dstChain');
+        
+        // Clear existing options
+        sourceSelect.innerHTML = '';
+        dstSelect.innerHTML = '';
+        
+        // Populate with chains from config
+        Object.entries(chainConfigs).forEach(([chainId, config]) => {
+          const sourceOption = new Option(`${config.name} (${chainId})`, chainId);
+          const dstOption = new Option(`${config.name} (${chainId})`, chainId);
+          
+          sourceSelect.add(sourceOption);
+          dstSelect.add(dstOption.cloneNode(true));
+        });
+        
+        // Set default selections if available
+        if (chainConfigs[41923]) sourceSelect.value = '41923'; // Edu Chain
+        if (chainConfigs[100]) dstSelect.value = '100'; // Gnosis Chain
+        
+        updateChainInfo();
+      }
+
       function updateChainInfo() {
         const sourceChain = document.getElementById("sourceChain").value;
         const dstChain = document.getElementById("dstChain").value;
 
-        document.getElementById(
-          "sourceChainInfo"
-        ).textContent = `USDC: ${chainConfigs[sourceChain].usdc}`;
-        document.getElementById(
-          "dstChainInfo"
-        ).textContent = `USDC: ${chainConfigs[dstChain].usdc}`;
+        if (chainConfigs[sourceChain]) {
+          document.getElementById(
+            "sourceChainInfo"
+          ).innerHTML = `USDC: ${chainConfigs[sourceChain].usdc}<br>Stargate USDC: ${chainConfigs[sourceChain].stargateUsdc}`;
+        }
+        
+        if (chainConfigs[dstChain]) {
+          document.getElementById(
+            "dstChainInfo"
+          ).innerHTML = `USDC: ${chainConfigs[dstChain].usdc}<br>Stargate USDC: ${chainConfigs[dstChain].stargateUsdc}`;
+        }
       }
 
       // Override console.log to capture logs
@@ -553,7 +607,7 @@
       }
 
       // Initialize
-      updateChainInfo();
+      loadConfig();
     </script>
   </body>
 </html>
