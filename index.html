@@ -309,8 +309,20 @@
         sourceSelect.innerHTML = '';
         dstSelect.innerHTML = '';
         
-        // Populate with chains from config
-        Object.entries(chainConfigs).forEach(([chainId, config]) => {
+        // Define supported chains that work with Gnosis Chain
+        const supportedChains = ['arbitrum', 'educhain', 'ethereum', 'base', 'optimism', 'gnosis'];
+        
+        // Filter chains to only show supported ones
+        const filteredChains = Object.entries(chainConfigs).filter(([chainId, config]) => {
+          const chainName = config.name.toLowerCase().replace(/\s+/g, '');
+          return supportedChains.some(supported => 
+            chainName.includes(supported) || 
+            (supported === 'gnosis' && chainName.includes('gnosis'))
+          );
+        });
+        
+        // Populate with filtered chains
+        filteredChains.forEach(([chainId, config]) => {
           const sourceOption = new Option(`${config.name} (${chainId})`, chainId);
           const dstOption = new Option(`${config.name} (${chainId})`, chainId);
           
