@@ -246,44 +246,44 @@
       // Load chain configurations from config.json
       let chainConfigs = {};
       let configData = null;
-      
+
       // Load config.json
       async function loadConfig() {
         try {
-          const response = await fetch('./config.json');
+          const response = await fetch("./config.json");
           configData = await response.json();
-          
+
           // Build chain configs from config.json
           chainConfigs = {};
-          configData.chains.forEach(chain => {
+          configData.chains.forEach((chain) => {
             chainConfigs[chain.chainId] = {
               name: chain.name,
               usdc: chain.contracts.usdc,
-              stargateUsdc: chain.contracts.stargateUsdc
+              stargateUsdc: chain.contracts.stargateUsdc,
             };
           });
-          
+
           // Populate chain selects
           populateChainSelects();
         } catch (error) {
-          console.error('Failed to load config.json:', error);
+          console.error("Failed to load config.json:", error);
           // Fallback to hardcoded configs
           chainConfigs = {
             41923: {
               name: "Edu Chain",
               usdc: "0x12a272A581feE5577A5dFa371afEB4b2F3a8C2F8",
-              stargateUsdc: "0x28BEc7E30E6faee657a03e19Bf1128AaD7632A00"
+              stargateUsdc: "0x28BEc7E30E6faee657a03e19Bf1128AaD7632A00",
             },
             100: {
               name: "Gnosis Chain",
               usdc: "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0",
-              stargateUsdc: "0xB1EeAD6959cb5bB9B20417d6689922523B2B86C3"
+              stargateUsdc: "0xB1EeAD6959cb5bB9B20417d6689922523B2B86C3",
             },
             42161: {
               name: "Arbitrum",
               usdc: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
-              stargateUsdc: "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3"
-            }
+              stargateUsdc: "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3",
+            },
           };
         }
       }
@@ -304,70 +304,96 @@
 
       // Chain mapping for routing rules
       function getChainKey(chainId, chainName) {
-        const name = chainName.toLowerCase().replace(/\s+/g, '');
-        if (name.includes('edu')) return 'edu';
-        if (name.includes('gnosis')) return 'gnosis';
-        if (name.includes('arbitrum')) return 'arbitrum';
-        if (name.includes('base')) return 'base';
-        if (name.includes('ethereum') && !name.includes('arbitrum')) return 'ethereum';
-        if (name.includes('optimism')) return 'optimism';
+        const name = chainName.toLowerCase().replace(/\s+/g, "");
+        if (name.includes("edu")) return "edu";
+        if (name.includes("gnosis")) return "gnosis";
+        if (name.includes("arbitrum")) return "arbitrum";
+        if (name.includes("base")) return "base";
+        if (name.includes("ethereum") && !name.includes("arbitrum"))
+          return "ethereum";
+        if (name.includes("optimism")) return "optimism";
         return null;
       }
 
       function populateChainSelects() {
-        const sourceSelect = document.getElementById('sourceChain');
-        const dstSelect = document.getElementById('dstChain');
-        
+        const sourceSelect = document.getElementById("sourceChain");
+        const dstSelect = document.getElementById("dstChain");
+
         // Clear existing options
-        sourceSelect.innerHTML = '';
-        dstSelect.innerHTML = '';
-        
+        sourceSelect.innerHTML = "";
+        dstSelect.innerHTML = "";
+
         // Define supported chains
-        const supportedChains = ['arbitrum', 'educhain', 'ethereum', 'base', 'optimism', 'gnosis'];
-        
+        const supportedChains = [
+          "arbitrum",
+          "educhain",
+          "ethereum",
+          "base",
+          "optimism",
+          "gnosis",
+        ];
+
         // Filter chains to only show supported ones
-        const filteredChains = Object.entries(chainConfigs).filter(([chainId, config]) => {
-          const chainKey = getChainKey(chainId, config.name);
-          return chainKey !== null;
-        });
-        
+        const filteredChains = Object.entries(chainConfigs).filter(
+          ([chainId, config]) => {
+            const chainKey = getChainKey(chainId, config.name);
+            return chainKey !== null;
+          }
+        );
+
         // Populate source chain select with all supported chains
         filteredChains.forEach(([chainId, config]) => {
-          const sourceOption = new Option(`${config.name} (${chainId})`, chainId);
+          const sourceOption = new Option(
+            `${config.name} (${chainId})`,
+            chainId
+          );
           sourceSelect.add(sourceOption);
         });
-        
+
         // Set default source selection if available
-        if (chainConfigs[41923]) sourceSelect.value = '41923'; // Edu Chain
-        
+        if (chainConfigs[41923]) sourceSelect.value = "41923"; // Edu Chain
+
         // Update destination chains based on initial source selection
         updateDestinationChains();
         updateChainInfo();
       }
 
       function updateDestinationChains() {
-        const sourceChainId = document.getElementById('sourceChain').value;
-        const dstSelect = document.getElementById('dstChain');
+        const sourceChainId = document.getElementById("sourceChain").value;
+        const dstSelect = document.getElementById("dstChain");
         const currentDstValue = dstSelect.value;
-        
+
         // Clear destination options
-        dstSelect.innerHTML = '';
-        
+        dstSelect.innerHTML = "";
+
         if (!sourceChainId || !chainConfigs[sourceChainId]) return;
-        
-        const sourceChainKey = getChainKey(sourceChainId, chainConfigs[sourceChainId].name);
-        
+
+        const sourceChainKey = getChainKey(
+          sourceChainId,
+          chainConfigs[sourceChainId].name
+        );
+
         // Define routing rules
         let allowedDestinations = [];
-        
-        if (sourceChainKey === 'gnosis') {
+
+        if (sourceChainKey === "gnosis") {
           // Gnosis can go to: EDU, Arbitrum, Base, Ethereum, Optimism
-          allowedDestinations = ['edu', 'arbitrum', 'base', 'ethereum', 'optimism'];
-        } else if (['edu', 'arbitrum', 'base', 'ethereum', 'optimism'].includes(sourceChainKey)) {
+          allowedDestinations = [
+            "edu",
+            "arbitrum",
+            "base",
+            "ethereum",
+            "optimism",
+          ];
+        } else if (
+          ["edu", "arbitrum", "base", "ethereum", "optimism"].includes(
+            sourceChainKey
+          )
+        ) {
           // These chains can only go to Gnosis
-          allowedDestinations = ['gnosis'];
+          allowedDestinations = ["gnosis"];
         }
-        
+
         // Populate destination select based on allowed destinations
         Object.entries(chainConfigs).forEach(([chainId, config]) => {
           const chainKey = getChainKey(chainId, config.name);
@@ -376,22 +402,31 @@
             dstSelect.add(option);
           }
         });
-        
+
         // Try to preserve previous selection if still valid
-        if (currentDstValue && Array.from(dstSelect.options).some(option => option.value === currentDstValue)) {
+        if (
+          currentDstValue &&
+          Array.from(dstSelect.options).some(
+            (option) => option.value === currentDstValue
+          )
+        ) {
           dstSelect.value = currentDstValue;
         } else if (dstSelect.options.length > 0) {
           // Set default destination based on source
-          if (sourceChainKey === 'gnosis') {
+          if (sourceChainKey === "gnosis") {
             // Default to EDU if available
-            const eduOption = Array.from(dstSelect.options).find(option => 
-              getChainKey(option.value, chainConfigs[option.value]?.name) === 'edu'
+            const eduOption = Array.from(dstSelect.options).find(
+              (option) =>
+                getChainKey(option.value, chainConfigs[option.value]?.name) ===
+                "edu"
             );
             if (eduOption) dstSelect.value = eduOption.value;
           } else {
             // Default to Gnosis
-            const gnosisOption = Array.from(dstSelect.options).find(option => 
-              getChainKey(option.value, chainConfigs[option.value]?.name) === 'gnosis'
+            const gnosisOption = Array.from(dstSelect.options).find(
+              (option) =>
+                getChainKey(option.value, chainConfigs[option.value]?.name) ===
+                "gnosis"
             );
             if (gnosisOption) dstSelect.value = gnosisOption.value;
           }
@@ -407,7 +442,7 @@
             "sourceChainInfo"
           ).innerHTML = `USDC: ${chainConfigs[sourceChain].usdc}<br>Stargate USDC: ${chainConfigs[sourceChain].stargateUsdc}`;
         }
-        
+
         if (chainConfigs[dstChain]) {
           document.getElementById(
             "dstChainInfo"
@@ -565,9 +600,33 @@
           `From: ${chainConfigs[sourceChainId].name} (${sourceChainId})`
         );
         console.log(`To: ${chainConfigs[dstChainId].name} (${dstChainId})`);
-        console.log(
-          `Amount: ${usdcValue} micro USDC (${usdcValue / 1000000} USDC)`
-        );
+        console.log(`Amount: ${usdcValue} USDC (${usdcValue / 1000000} USDC)`);
+
+        // Check if user is on the correct source chain
+        try {
+          const currentChainId = await window.ethereum.request({
+            method: 'eth_chainId'
+          });
+          const currentChainIdDecimal = parseInt(currentChainId, 16);
+          
+          if (currentChainIdDecimal !== sourceChainId) {
+            console.log(`Current chain: ${currentChainIdDecimal}, Required: ${sourceChainId}`);
+            
+            // Try to switch to the source chain
+            try {
+              await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: `0x${sourceChainId.toString(16)}` }],
+              });
+              console.log(`Switched to chain ${sourceChainId}`);
+            } catch (switchError) {
+              throw new Error(`Please switch to ${chainConfigs[sourceChainId].name} (Chain ID: ${sourceChainId}) in your wallet to continue.`);
+            }
+          }
+        } catch (error) {
+          showError(`Chain validation failed: ${error.message}`);
+          return;
+        }
 
         // Step 1: Register Address
         setStepActive(1);
@@ -575,49 +634,124 @@
           "Step 1: Registering address and getting Universal Address..."
         );
 
-        // Simulate API call
-        await simulateDelay(2000);
-        const universalAddress =
-          "0x" +
-          Array.from({ length: 40 }, () =>
-            Math.floor(Math.random() * 16).toString(16)
-          ).join("");
-        console.log("UD address", universalAddress);
+        let universalAddress;
+        try {
+          const registerResponse = await fetch(
+            "https://prod.universal-deposit.gnosischain.com/api/v1/register-address",
+            {
+              method: "POST",
+              headers: {
+                accept: "application/json",
+                "X-API-Key": apiKey,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ownerAddress,
+                recipientAddress,
+                destinationChainId: dstChainId,
+                sourceChainId: sourceChainId,
+              }),
+            }
+          );
 
-        document.getElementById("step1Result").innerHTML = `
-                <div class="success">✅ Universal Address: ${universalAddress}</div>
-            `;
-        setStepCompleted(1);
+          if (!registerResponse.ok) {
+            throw new Error(
+              `Registration failed: ${registerResponse.statusText}`
+            );
+          }
+
+          const registerData = await registerResponse.json();
+          universalAddress = registerData.universalAddress;
+          console.log("UD address", universalAddress);
+
+          document.getElementById("step1Result").innerHTML = `
+                  <div class="success">✅ Universal Address: ${universalAddress}</div>
+              `;
+          setStepCompleted(1);
+        } catch (error) {
+          document.getElementById("step1Result").innerHTML = `
+                  <div class="error">❌ Failed to register address: ${error.message}</div>
+              `;
+          throw error;
+        }
 
         // Step 2: Query Nonce
         setStepActive(2);
         console.log("Step 2: Querying UD address nonce...");
 
-        await simulateDelay(1500);
-        const UDAddressNonce = Math.floor(Math.random() * 3);
-        console.log(`Nonce: ${UDAddressNonce}`);
+        let UDAddressNonce;
+        try {
+          // Call the nonce view function on the contract on the source chain
+          const nonceData = await window.ethereum.request({
+            method: "eth_call",
+            params: [
+              {
+                to: universalAddress,
+                data: "0xaffed0e0", // nonce() function selector
+              },
+              "latest",
+              `0x${sourceChainId.toString(16)}` // Ensure we're querying the correct chain
+            ],
+          });
 
-        document.getElementById("step2Result").innerHTML = `
-                <div class="success">✅ Nonce: ${UDAddressNonce}</div>
-            `;
-        setStepCompleted(2);
+          // If contract doesn't exist, nonce is 0
+          UDAddressNonce = nonceData === "0x" ? 0 : parseInt(nonceData, 16);
+          console.log(`Nonce: ${UDAddressNonce}`);
+
+          document.getElementById("step2Result").innerHTML = `
+                  <div class="success">✅ Nonce: ${UDAddressNonce}</div>
+              `;
+          setStepCompleted(2);
+        } catch (error) {
+          console.log("Contract may not exist yet, using nonce 0");
+          UDAddressNonce = 0;
+          document.getElementById("step2Result").innerHTML = `
+                  <div class="success">✅ Nonce: ${UDAddressNonce} (new contract)</div>
+              `;
+          setStepCompleted(2);
+        }
 
         // Step 3: Bridge USDC
         setStepActive(3);
         console.log("Step 3: Bridging USDC...");
 
-        await simulateDelay(3000);
-        const bridgeUSDCTxHash =
-          "0x" +
-          Array.from({ length: 64 }, () =>
-            Math.floor(Math.random() * 16).toString(16)
-          ).join("");
-        console.log("Bridge USDC Tx hash", bridgeUSDCTxHash);
+        let bridgeUSDCTxHash;
+        try {
+          // Get USDC contract address for source chain
+          const usdcAddress = chainConfigs[sourceChainId].usdc;
 
-        document.getElementById("step3Result").innerHTML = `
-                <div class="success">✅ Transaction Hash: ${bridgeUSDCTxHash}</div>
-            `;
-        setStepCompleted(3);
+          // ERC20 transfer function selector and data
+          const transferData =
+            "0xa9059cbb" + // transfer(address,uint256) selector
+            universalAddress.slice(2).padStart(64, "0") + // to address (32 bytes)
+            usdcValue.toString(16).padStart(64, "0"); // value (32 bytes)
+
+          // Send transaction via MetaMask
+          bridgeUSDCTxHash = await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [
+              {
+                from: currentAccount,
+                to: usdcAddress,
+                data: transferData,
+                gas: "0x15f90", // 90000 gas limit for ERC20 transfer
+                chainId: `0x${sourceChainId.toString(16)}`, // Ensure transaction is on correct chain
+              },
+            ],
+          });
+
+          console.log("Bridge USDC Tx hash", bridgeUSDCTxHash);
+
+          document.getElementById("step3Result").innerHTML = `
+                  <div class="success">✅ Transaction Hash: ${bridgeUSDCTxHash}</div>
+              `;
+          setStepCompleted(3);
+        } catch (error) {
+          document.getElementById("step3Result").innerHTML = `
+                  <div class="error">❌ Failed to bridge USDC: ${error.message}</div>
+              `;
+          throw error;
+        }
 
         // Step 4: Poll for completion
         setStepActive(4);
@@ -627,44 +761,73 @@
         const delayMs = 2000;
         let attempt = 0;
         let orderCompleted = false;
+        let orderResult = null;
 
         while (attempt < maxAttempts && !orderCompleted) {
           attempt++;
 
           await simulateDelay(delayMs);
 
-          // Simulate random completion (higher chance as attempts increase)
-          const completionChance = Math.min(0.1 + attempt * 0.05, 0.9);
-          const status =
-            Math.random() < completionChance ? "COMPLETED" : "PENDING";
+          try {
+            const ordersResponse = await fetch(
+              `https://prod.universal-deposit.gnosischain.com/api/v1/orders?universalAddress=${universalAddress}&sourceChainId=${sourceChainId}&nonce=${UDAddressNonce}&limit=10`,
+              {
+                headers: {
+                  accept: "application/json",
+                  "X-API-Key": apiKey,
+                },
+              }
+            );
 
-          console.log(`Attempt ${attempt}: Order status - ${status}`);
-
-          if (status === "COMPLETED") {
-            orderCompleted = true;
-            const bridgeTransactionUrl = `https://layerzeroscan.com/tx/${bridgeUSDCTxHash}`;
-            console.log("Order completed successfully!");
-            console.log("Transaction URL:", bridgeTransactionUrl);
-
-            document.getElementById("step4Result").innerHTML = `
-                        <div class="success">
-                            ✅ Order completed successfully!<br>
-                            <a href="${bridgeTransactionUrl}" target="_blank">View Transaction</a>
-                        </div>
-                    `;
-            setStepCompleted(4);
-            showSuccess("🎉 Bridge completed successfully!");
-            break;
-          } else {
-            document.getElementById("step4Result").innerHTML = `
-                        <div>⏳ Attempt ${attempt}/${maxAttempts}: ${status}</div>
-                    `;
-
-            if (attempt < maxAttempts) {
+            if (ordersResponse.ok) {
+              orderResult = await ordersResponse.json();
               console.log(
-                `Waiting ${delayMs / 1000} seconds before next check...`
+                `Attempt ${attempt}: Order status - ${orderResult.status}`
               );
+
+              if (orderResult.status === "COMPLETED") {
+                orderCompleted = true;
+                const bridgeTransactionUrl =
+                  orderResult.bridgeTransactionUrl ||
+                  `https://layerzeroscan.com/tx/${bridgeUSDCTxHash}`;
+                console.log("Order completed successfully!");
+                console.log("Transaction URL:", bridgeTransactionUrl);
+
+                document.getElementById("step4Result").innerHTML = `
+                            <div class="success">
+                                ✅ Order completed successfully!<br>
+                                <a href="${bridgeTransactionUrl}" target="_blank">View Transaction</a>
+                            </div>
+                        `;
+                setStepCompleted(4);
+                showSuccess("🎉 Bridge completed successfully!");
+                break;
+              } else {
+                document.getElementById("step4Result").innerHTML = `
+                            <div>⏳ Attempt ${attempt}/${maxAttempts}: ${
+                  orderResult.status || "PENDING"
+                }</div>
+                        `;
+              }
+            } else {
+              console.log(`Attempt ${attempt}: Order not found yet`);
+              document.getElementById("step4Result").innerHTML = `
+                          <div>⏳ Attempt ${attempt}/${maxAttempts}: Order not found yet</div>
+                      `;
             }
+          } catch (error) {
+            console.log(
+              `Attempt ${attempt}: Error fetching order - ${error.message}`
+            );
+            document.getElementById("step4Result").innerHTML = `
+                        <div>⏳ Attempt ${attempt}/${maxAttempts}: Checking...</div>
+                    `;
+          }
+
+          if (attempt < maxAttempts && !orderCompleted) {
+            console.log(
+              `Waiting ${delayMs / 1000} seconds before next check...`
+            );
           }
         }
 
