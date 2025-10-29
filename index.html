@@ -292,6 +292,7 @@
       document
         .getElementById("sourceChain")
         .addEventListener("change", function () {
+          updateDestinationChains();
           updateChainInfo();
         });
 
@@ -301,6 +302,18 @@
           updateChainInfo();
         });
 
+      // Chain mapping for routing rules
+      function getChainKey(chainId, chainName) {
+        const name = chainName.toLowerCase().replace(/\s+/g, '');
+        if (name.includes('edu')) return 'edu';
+        if (name.includes('gnosis')) return 'gnosis';
+        if (name.includes('arbitrum')) return 'arbitrum';
+        if (name.includes('base')) return 'base';
+        if (name.includes('ethereum') && !name.includes('arbitrum')) return 'ethereum';
+        if (name.includes('optimism')) return 'optimism';
+        return null;
+      }
+
       function populateChainSelects() {
         const sourceSelect = document.getElementById('sourceChain');
         const dstSelect = document.getElementById('dstChain');
@@ -309,32 +322,80 @@
         sourceSelect.innerHTML = '';
         dstSelect.innerHTML = '';
         
-        // Define supported chains that work with Gnosis Chain
+        // Define supported chains
         const supportedChains = ['arbitrum', 'educhain', 'ethereum', 'base', 'optimism', 'gnosis'];
         
         // Filter chains to only show supported ones
         const filteredChains = Object.entries(chainConfigs).filter(([chainId, config]) => {
-          const chainName = config.name.toLowerCase().replace(/\s+/g, '');
-          return supportedChains.some(supported => 
-            chainName.includes(supported) || 
-            (supported === 'gnosis' && chainName.includes('gnosis'))
-          );
+          const chainKey = getChainKey(chainId, config.name);
+          return chainKey !== null;
         });
         
-        // Populate with filtered chains
+        // Populate source chain select with all supported chains
         filteredChains.forEach(([chainId, config]) => {
           const sourceOption = new Option(`${config.name} (${chainId})`, chainId);
-          const dstOption = new Option(`${config.name} (${chainId})`, chainId);
-          
           sourceSelect.add(sourceOption);
-          dstSelect.add(dstOption.cloneNode(true));
         });
         
-        // Set default selections if available
+        // Set default source selection if available
         if (chainConfigs[41923]) sourceSelect.value = '41923'; // Edu Chain
-        if (chainConfigs[100]) dstSelect.value = '100'; // Gnosis Chain
         
+        // Update destination chains based on initial source selection
+        updateDestinationChains();
         updateChainInfo();
+      }
+
+      function updateDestinationChains() {
+        const sourceChainId = document.getElementById('sourceChain').value;
+        const dstSelect = document.getElementById('dstChain');
+        const currentDstValue = dstSelect.value;
+        
+        // Clear destination options
+        dstSelect.innerHTML = '';
+        
+        if (!sourceChainId || !chainConfigs[sourceChainId]) return;
+        
+        const sourceChainKey = getChainKey(sourceChainId, chainConfigs[sourceChainId].name);
+        
+        // Define routing rules
+        let allowedDestinations = [];
+        
+        if (sourceChainKey === 'gnosis') {
+          // Gnosis can go to: EDU, Arbitrum, Base, Ethereum, Optimism
+          allowedDestinations = ['edu', 'arbitrum', 'base', 'ethereum', 'optimism'];
+        } else if (['edu', 'arbitrum', 'base', 'ethereum', 'optimism'].includes(sourceChainKey)) {
+          // These chains can only go to Gnosis
+          allowedDestinations = ['gnosis'];
+        }
+        
+        // Populate destination select based on allowed destinations
+        Object.entries(chainConfigs).forEach(([chainId, config]) => {
+          const chainKey = getChainKey(chainId, config.name);
+          if (allowedDestinations.includes(chainKey)) {
+            const option = new Option(`${config.name} (${chainId})`, chainId);
+            dstSelect.add(option);
+          }
+        });
+        
+        // Try to preserve previous selection if still valid
+        if (currentDstValue && Array.from(dstSelect.options).some(option => option.value === currentDstValue)) {
+          dstSelect.value = currentDstValue;
+        } else if (dstSelect.options.length > 0) {
+          // Set default destination based on source
+          if (sourceChainKey === 'gnosis') {
+            // Default to EDU if available
+            const eduOption = Array.from(dstSelect.options).find(option => 
+              getChainKey(option.value, chainConfigs[option.value]?.name) === 'edu'
+            );
+            if (eduOption) dstSelect.value = eduOption.value;
+          } else {
+            // Default to Gnosis
+            const gnosisOption = Array.from(dstSelect.options).find(option => 
+              getChainKey(option.value, chainConfigs[option.value]?.name) === 'gnosis'
+            );
+            if (gnosisOption) dstSelect.value = gnosisOption.value;
+          }
+        }
       }
 
       function updateChainInfo() {
